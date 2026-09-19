@@ -697,6 +697,12 @@ def _parse_journeys(
                 "origin": origin.get("name", ""),
                 "destination": destination.get("name", ""),
                 "line": transport.get("number", ""),
+                # Where the vehicle itself is headed. EFA carries the headsign
+                # as the transportation's own destination, which is not the leg's
+                # destination: an S1 to Herrenberg is boarded for two stops as
+                # readily as for twenty, and the headsign is what is written on
+                # the front of the train and on the platform display.
+                "direction": (transport.get("destination") or {}).get("name", ""),
                 "product": product.get("name", ""),
                 "transport_type": _leg_transport_type(product, type_mapping),
                 "departure_planned": _format_time(dep_planned),

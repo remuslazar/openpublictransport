@@ -587,6 +587,48 @@ async def test_plan_trip_efa_non_dict_response(hass: HomeAssistant):
             await async_plan_trip(hass, "vrr", "A", "City", "B", "City")
 
 
+def test_parse_journeys_exposes_direction():
+    """A leg carries the vehicle's headsign, which is not the leg's destination."""
+    journeys = [
+        {
+            "legs": [
+                {
+                    "origin": {"name": "Koengen Kastellstr."},
+                    "destination": {"name": "Wendlingen (N)"},
+                    "transportation": {
+                        "number": "S1",
+                        "product": {"name": "S-Bahn"},
+                        "destination": {"name": "Herrenberg"},
+                    },
+                    "duration": 600,
+                }
+            ],
+            "interchanges": 0,
+        }
+    ]
+    leg = _parse_journeys(journeys)[0]["legs"][0]
+    assert leg["direction"] == "Herrenberg"
+    assert leg["destination"] == "Wendlingen (N)"
+
+
+def test_parse_journeys_direction_absent():
+    """A leg without a headsign — a footpath — reports an empty direction."""
+    journeys = [
+        {
+            "legs": [
+                {
+                    "origin": {"name": "A"},
+                    "destination": {"name": "B"},
+                    "transportation": {"product": {"name": "footpath"}},
+                    "duration": 480,
+                }
+            ],
+            "interchanges": 0,
+        }
+    ]
+    assert _parse_journeys(journeys)[0]["legs"][0]["direction"] == ""
+
+
 # ── transport type on a leg (issue #87) ───────────────────────────────────────
 
 def test_leg_transport_type_from_product_class():
