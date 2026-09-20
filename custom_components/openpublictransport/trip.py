@@ -171,6 +171,11 @@ def _rate_transfers(transit_legs: List[Dict[str, Any]]) -> tuple[bool, str, Opti
     the internal ``_departure_s`` / ``_arrival_s`` epoch keys. Walking legs are
     not transfers and must be filtered out by the caller.
 
+    Each leg a traveller changes out of is annotated with ``transfer_minutes``,
+    the wait before the next vehicle leaves. The journey-wide minimum says how
+    tight the journey is; this says where, which is what a traveller standing on
+    the platform after one of the legs actually needs.
+
     Returns ``(connection_feasible, transfer_risk, min_transfer_time)``; the
     minimum transfer time is ``None`` for a journey without a transfer.
     """
@@ -184,6 +189,7 @@ def _rate_transfers(transit_legs: List[Dict[str, Any]]) -> tuple[bool, str, Opti
         if not arrival or not departure:
             continue
         gap_min = int((departure - arrival) // 60)
+        current["transfer_minutes"] = gap_min
         if min_transfer is None or gap_min < min_transfer:
             min_transfer = gap_min
         if gap_min <= 0:
@@ -697,6 +703,12 @@ def _parse_journeys(
                 "origin": origin.get("name", ""),
                 "destination": destination.get("name", ""),
                 "line": transport.get("number", ""),
+                # Where the vehicle itself is headed. EFA carries the headsign
+                # as the transportation's own destination, which is not the leg's
+                # destination: an S1 to Herrenberg is boarded for two stops as
+                # readily as for twenty, and the headsign is what is written on
+                # the front of the train and on the platform display.
+                "direction": (transport.get("destination") or {}).get("name", ""),
                 "product": product.get("name", ""),
                 "transport_type": _leg_transport_type(product, type_mapping),
                 "departure_planned": _format_time(dep_planned),
